@@ -1,1 +1,3 @@
 ini filek ku
+
+edit di file ku
