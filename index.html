@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="id" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard Monitoring Budgeting - Kapal</title>
+
+    <!-- Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- TailwindCSS v3 (CDN runtime). Note: v3.4.6 target, CDN serves latest 3.x at runtime -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] },
+            colors: {
+              primary: { 900: "#111827", 800: "#1f2937" },
+              accentBlue: "#60a5fa",
+              accentGreen: "#34d399",
+              accentOrange: "#f97316",
+            },
+            boxShadow: {
+              card: "0 10px 25px -10px rgba(0,0,0,0.15)",
+            },
+          },
+        },
+        plugins: [],
+      };
+    </script>
+
+    <!-- Chart.js v4 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    <!-- simple-datatables -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-datatables@9.0.4/dist/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@9.0.4" defer></script>
+
+    <style>
+      /* Glassmorphism subtle */
+      .glass { backdrop-filter: blur(8px); background: rgba(255,255,255,0.65); }
+      .scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
+      .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 9999px; }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+  </head>
+  <body class="h-full bg-gray-50 text-gray-900">
+    <div id="app" class="min-h-screen flex">
+      <!-- Left Sidebar -->
+      <aside id="leftSidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-white shadow-xl border-r border-gray-100 hidden lg:flex flex-col">
+        <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+          <div class="h-10 w-10 rounded-lg bg-gradient-to-tr from-accentBlue to-accentGreen flex items-center justify-center text-white font-bold">K</div>
+          <div class="font-semibold">Kapal Dashboard</div>
+        </div>
+        <nav class="flex-1 overflow-y-auto p-3 space-y-1">
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 group">
+            <span class="h-5 w-5 text-gray-500 group-hover:text-gray-700">🔲</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 group">
+            <span class="h-5 w-5 text-gray-500 group-hover:text-gray-700">🚚</span>
+            <span>Pengiriman</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 group">
+            <span class="h-5 w-5 text-gray-500 group-hover:text-gray-700">💼</span>
+            <span>Anggaran</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 group">
+            <span class="h-5 w-5 text-gray-500 group-hover:text-gray-700">📄</span>
+            <span>Laporan</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 group">
+            <span class="h-5 w-5 text-gray-500 group-hover:text-gray-700">⚙️</span>
+            <span>Pengaturan</span>
+          </a>
+        </nav>
+        <div class="border-t border-gray-100 p-4 flex items-center gap-3">
+          <img id="sidebarAvatar" src="https://ui-avatars.com/api/?name=Admin+Kapal" class="h-10 w-10 rounded-full" alt="avatar" />
+          <div class="flex-1">
+            <div class="font-medium leading-tight">Admin Kapal</div>
+            <div class="text-xs text-gray-500">user.nama</div>
+          </div>
+          <button class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200">Logout</button>
+        </div>
+      </aside>
+
+      <!-- Mobile Sidebar (Offcanvas) -->
+      <div id="mobileSidebarBackdrop" class="fixed inset-0 z-40 bg-black/30 opacity-0 pointer-events-none transition-opacity lg:hidden"></div>
+      <aside id="mobileSidebar" class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-xl border-r border-gray-100 -translate-x-full transition-transform lg:hidden flex flex-col">
+        <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+          <button id="btnCloseMobileSidebar" class="mr-2 h-8 w-8 grid place-items-center rounded-md hover:bg-gray-100">✖</button>
+          <div class="h-10 w-10 rounded-lg bg-gradient-to-tr from-accentBlue to-accentGreen flex items-center justify-center text-white font-bold">K</div>
+          <div class="font-semibold">Kapal Dashboard</div>
+        </div>
+        <nav class="flex-1 overflow-y-auto p-3 space-y-1">
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 group">
+            <span class="h-5 w-5 text-gray-500 group-hover:text-gray-700">🔲</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 group">
+            <span class="h-5 w-5 text-gray-500 group-hover:text-gray-700">🚚</span>
+            <span>Pengiriman</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 group">
+            <span class="h-5 w-5 text-gray-500 group-hover:text-gray-700">💼</span>
+            <span>Anggaran</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 group">
+            <span class="h-5 w-5 text-gray-500 group-hover:text-gray-700">📄</span>
+            <span>Laporan</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 group">
+            <span class="h-5 w-5 text-gray-500 group-hover:text-gray-700">⚙️</span>
+            <span>Pengaturan</span>
+          </a>
+        </nav>
+        <div class="border-t border-gray-100 p-4 flex items-center gap-3">
+          <img src="https://ui-avatars.com/api/?name=Admin+Kapal" class="h-10 w-10 rounded-full" alt="avatar" />
+          <div class="flex-1">
+            <div class="font-medium leading-tight">Admin Kapal</div>
+            <div class="text-xs text-gray-500">user.nama</div>
+          </div>
+          <button class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200">Logout</button>
+        </div>
+      </aside>
+
+      <!-- Main content wrapper -->
+      <div class="flex-1 flex flex-col min-w-0 lg:ml-72">
+        <!-- Header -->
+        <header class="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-gray-100">
+          <div class="px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
+            <button id="btnOpenMobileSidebar" class="lg:hidden h-10 w-10 grid place-items-center rounded-lg hover:bg-gray-100">☰</button>
+            <div class="text-lg sm:text-xl font-semibold">Dashboard Monitoring Budgeting - Kapal</div>
+            <div class="flex-1"></div>
+            <div class="hidden md:flex items-center gap-3">
+              <div class="relative">
+                <input id="globalSearch" type="search" placeholder="Cari..." class="w-64 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accentBlue" />
+                <div class="absolute right-2 top-1.5 text-gray-400">🔍</div>
+              </div>
+              <img src="https://ui-avatars.com/api/?name=Admin+Kapal" class="h-9 w-9 rounded-full" alt="avatar" />
+            </div>
+          </div>
+        </header>
+
+        <!-- Main -->
+        <main class="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          <!-- Summary Row: Stat Cards -->
+          <section>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="rounded-xl shadow-card glass p-4 flex items-center gap-4">
+                <div class="h-12 w-12 rounded-lg bg-gradient-to-tr from-accentBlue to-blue-400 text-white grid place-items-center text-xl">₨</div>
+                <div>
+                  <div class="text-sm text-gray-500">Total Anggaran</div>
+                  <div id="statTotalBudget" class="text-xl font-semibold">-</div>
+                </div>
+              </div>
+              <div class="rounded-xl shadow-card glass p-4 flex items-center gap-4">
+                <div class="h-12 w-12 rounded-lg bg-gradient-to-tr from-emerald-400 to-accentGreen text-white grid place-items-center text-xl">💰</div>
+                <div>
+                  <div class="text-sm text-gray-500">Sisa Anggaran</div>
+                  <div id="statRemainingBudget" class="text-xl font-semibold">-</div>
+                </div>
+              </div>
+              <div class="rounded-xl shadow-card glass p-4 flex items-center gap-4">
+                <div class="h-12 w-12 rounded-lg bg-gradient-to-tr from-rose-400 to-pink-500 text-white grid place-items-center text-xl">⚠️</div>
+                <div>
+                  <div class="text-sm text-gray-500">Over Budget</div>
+                  <div id="statOverBudget" class="text-xl font-semibold">-</div>
+                </div>
+              </div>
+              <div class="rounded-xl shadow-card glass p-4 flex items-center gap-4">
+                <div class="h-12 w-12 rounded-lg bg-gradient-to-tr from-gray-400 to-gray-600 text-white grid place-items-center text-xl">📦</div>
+                <div>
+                  <div class="text-sm text-gray-500">Off Budget</div>
+                  <div id="statOffBudget" class="text-xl font-semibold">-</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Charts Row -->
+          <section class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            <!-- Donut chart -->
+            <div class="lg:col-span-3 rounded-xl shadow-card glass p-4 h-[360px] flex flex-col">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Breakdown Anggaran per Kategori</div>
+                <div class="text-xs text-gray-500">Klik slice untuk detail</div>
+              </div>
+              <div class="flex-1 relative">
+                <canvas id="donutCategories"></canvas>
+              </div>
+            </div>
+
+            <!-- Progress cards -->
+            <div class="lg:col-span-2 space-y-4">
+              <div id="progressCards" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-4">
+                <!-- Cards inserted by JS -->
+              </div>
+            </div>
+          </section>
+
+          <!-- List and Table Row -->
+          <section class="grid grid-cols-1 xl:grid-cols-5 gap-4">
+            <!-- List progress ships -->
+            <div class="xl:col-span-2 rounded-xl shadow-card glass p-4">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">Progress Kapal</div>
+                <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1 text-sm">
+                  <button data-cat="kapal_kecil" class="tabCat px-3 py-1 rounded-md bg-white shadow-sm">Kecil</button>
+                  <button data-cat="kapal_medium" class="tabCat px-3 py-1 rounded-md hover:bg-white">Medium</button>
+                  <button data-cat="kapal_besar" class="tabCat px-3 py-1 rounded-md hover:bg-white">Besar</button>
+                </div>
+              </div>
+              <div id="shipList" class="space-y-3"></div>
+              <div class="mt-4 flex items-center justify-between text-sm">
+                <div>
+                  <label>Per halaman: 
+                    <select id="shipPerPage" class="ml-1 rounded border-gray-300">
+                      <option>5</option>
+                      <option selected>10</option>
+                      <option>25</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button id="shipPrev" class="px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200">Prev</button>
+                  <span id="shipPageInfo" class="text-gray-600">-</span>
+                  <button id="shipNext" class="px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200">Next</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- History table -->
+            <div class="xl:col-span-3 rounded-xl shadow-card glass p-4">
+              <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold">History Pengiriman</div>
+                <div class="text-xs text-gray-500">Sort, cari, paging</div>
+              </div>
+              <div class="overflow-x-auto">
+                <table id="historyTable" class="min-w-full whitespace-nowrap"></table>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <!-- Right Detail Sidebar (Offcanvas) -->
+      <aside id="rightDetail" class="fixed inset-y-0 right-0 z-50 w-96 bg-white shadow-2xl border-l border-gray-100 translate-x-full transition-transform flex flex-col">
+        <div class="flex items-center justify-between px-5 py-4 border-b">
+          <div>
+            <div id="rdTitle" class="font-semibold">Detail Kategori</div>
+            <div id="rdSubtitle" class="text-sm text-gray-500">-</div>
+          </div>
+          <button id="btnCloseRight" class="h-9 w-9 grid place-items-center rounded-md hover:bg-gray-100">✖</button>
+        </div>
+        <div class="p-5 space-y-4 overflow-y-auto flex-1">
+          <div class="rounded-xl bg-gray-50 p-4">
+            <div class="text-sm text-gray-500">Total Anggaran Kategori</div>
+            <div id="rdTotal" class="text-lg font-semibold">-</div>
+          </div>
+          <div>
+            <div class="font-medium mb-2">Per Kapal</div>
+            <div id="rdList" class="space-y-3"></div>
+          </div>
+        </div>
+        <div class="p-4 border-t flex items-center justify-between">
+          <button id="btnExport" class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm">Export</button>
+          <button id="btnOpenDetail" class="px-3 py-2 rounded-lg bg-accentBlue text-white text-sm hover:opacity-90">Buka Detail</button>
+        </div>
+      </aside>
+    </div>
+
+    <script>
+      // ===== Utilities =====
+      const formatIDR = (v) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v || 0);
+      const qs = (sel, el=document) => el.querySelector(sel);
+      const qsa = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+      const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+      // ===== Dummy Data (as per spec) =====
+      const DUMMY = {
+        summary: { total_budget: 2500000000, remaining_budget: 650000000, over_budget: 120000000, off_budget: 50000000 },
+        categories: {
+          categories: [
+            { key: 'kapal_kecil', label: 'Kapal Kecil', amount: 600000000, color: '#60a5fa' },
+            { key: 'kapal_medium', label: 'Kapal Medium', amount: 900000000, color: '#34d399' },
+            { key: 'kapal_besar', label: 'Kapal Besar', amount: 1000000000, color: '#f97316' },
+          ]
+        },
+        progress: [
+          { category_key: 'kapal_kecil', category_label: 'Kapal Kecil', total_budget: 600000000, used_budget: 280000000, used_percent: 46, color: '#60a5fa' },
+          { category_key: 'kapal_medium', category_label: 'Kapal Medium', total_budget: 900000000, used_budget: 540000000, used_percent: 60, color: '#34d399' },
+          { category_key: 'kapal_besar', category_label: 'Kapal Besar', total_budget: 1000000000, used_budget: 830000000, used_percent: 83, color: '#f97316' },
+        ],
+        ships: {
+          kapal_kecil: [
+            { id: 'KK-001', ship_name: 'Kapal Kecil A', budget_allocated: 60000000, budget_used: 30000000, progress_percent: 50, delivery_status: 'In Transit' },
+            { id: 'KK-002', ship_name: 'Kapal Kecil B', budget_allocated: 60000000, budget_used: 42000000, progress_percent: 70, delivery_status: 'Delivered' },
+            { id: 'KK-003', ship_name: 'Kapal Kecil C', budget_allocated: 60000000, budget_used: 18000000, progress_percent: 30, delivery_status: 'Pending' },
+            { id: 'KK-004', ship_name: 'Kapal Kecil D', budget_allocated: 60000000, budget_used: 36000000, progress_percent: 60, delivery_status: 'In Transit' },
+            { id: 'KK-005', ship_name: 'Kapal Kecil E', budget_allocated: 60000000, budget_used: 6000000, progress_percent: 10, delivery_status: 'Pending' },
+            { id: 'KK-006', ship_name: 'Kapal Kecil F', budget_allocated: 60000000, budget_used: 48000000, progress_percent: 80, delivery_status: 'Delivered' },
+            { id: 'KK-007', ship_name: 'Kapal Kecil G', budget_allocated: 60000000, budget_used: 15000000, progress_percent: 25, delivery_status: 'In Transit' },
+            { id: 'KK-008', ship_name: 'Kapal Kecil H', budget_allocated: 60000000, budget_used: 30000000, progress_percent: 50, delivery_status: 'Delivered' },
+            { id: 'KK-009', ship_name: 'Kapal Kecil I', budget_allocated: 60000000, budget_used: 42000000, progress_percent: 70, delivery_status: 'In Transit' },
+            { id: 'KK-010', ship_name: 'Kapal Kecil J', budget_allocated: 60000000, budget_used: 54000000, progress_percent: 90, delivery_status: 'Delivered' },
+          ],
+          kapal_medium: [
+            { id: 'KM-001', ship_name: 'Kapal Medium A', budget_allocated: 180000000, budget_used: 90000000, progress_percent: 50, delivery_status: 'In Transit' },
+            { id: 'KM-002', ship_name: 'Kapal Medium B', budget_allocated: 180000000, budget_used: 120000000, progress_percent: 67, delivery_status: 'Delivered' },
+            { id: 'KM-003', ship_name: 'Kapal Medium C', budget_allocated: 180000000, budget_used: 54000000, progress_percent: 30, delivery_status: 'Pending' },
+            { id: 'KM-004', ship_name: 'Kapal Medium D', budget_allocated: 180000000, budget_used: 162000000, progress_percent: 90, delivery_status: 'Delivered' },
+            { id: 'KM-005', ship_name: 'Kapal Medium E', budget_allocated: 180000000, budget_used: 36000000, progress_percent: 20, delivery_status: 'In Transit' },
+          ],
+          kapal_besar: [
+            { id: 'KB-001', ship_name: 'Kapal Besar A', budget_allocated: 166666667, budget_used: 100000000, progress_percent: 60, delivery_status: 'In Transit' },
+            { id: 'KB-002', ship_name: 'Kapal Besar B', budget_allocated: 166666667, budget_used: 150000000, progress_percent: 90, delivery_status: 'Delivered' },
+            { id: 'KB-003', ship_name: 'Kapal Besar C', budget_allocated: 166666667, budget_used: 80000000, progress_percent: 48, delivery_status: 'Pending' },
+            { id: 'KB-004', ship_name: 'Kapal Besar D', budget_allocated: 166666667, budget_used: 166666667, progress_percent: 100, delivery_status: 'Delivered' },
+            { id: 'KB-005', ship_name: 'Kapal Besar E', budget_allocated: 166666667, budget_used: 90000000, progress_percent: 54, delivery_status: 'In Transit' },
+            { id: 'KB-006', ship_name: 'Kapal Besar F', budget_allocated: 166666667, budget_used: 40000000, progress_percent: 24, delivery_status: 'Pending' },
+          ],
+        },
+        history: [
+          { date: '2025-07-28', ship_id: 'KK-003', ship_name: 'Kapal Kecil C', item: 'BBM', amount: 1200000, status: 'Delivered', notes: '' },
+          { date: '2025-07-26', ship_id: 'KM-002', ship_name: 'Kapal Medium B', item: 'Spare Part Mesin', amount: 25000000, status: 'Delivered', notes: 'Urgent' },
+          { date: '2025-07-25', ship_id: 'KB-004', ship_name: 'Kapal Besar D', item: 'Kargo A', amount: 7800000, status: 'In Transit', notes: 'Delay 1 hari' },
+          { date: '2025-07-22', ship_id: 'KK-010', ship_name: 'Kapal Kecil J', item: 'Perlengkapan Deck', amount: 450000, status: 'Delivered', notes: '' },
+          { date: '2025-07-20', ship_id: 'KB-002', ship_name: 'Kapal Besar B', item: 'Container X', amount: 90000000, status: 'Delivered', notes: 'High priority' },
+        ],
+      };
+
+      // ===== Mock API via fetch interception =====
+      (function installMockApi() {
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = async function(input, init) {
+          const url = typeof input === 'string' ? input : input.url;
+          try {
+            const u = new URL(url, location.origin);
+            const path = u.pathname;
+            const params = u.searchParams;
+
+            if (path === '/api/budget/summary') {
+              return new Response(JSON.stringify(DUMMY.summary), { headers: { 'Content-Type': 'application/json' } });
+            }
+
+            if (path === '/api/budget/categories') {
+              return new Response(JSON.stringify(DUMMY.categories), { headers: { 'Content-Type': 'application/json' } });
+            }
+
+            if (path.startsWith('/api/budget/categories/') && path.endsWith('/detail')) {
+              const category_key = path.split('/')[4];
+              const map = {
+                kapal_kecil: {
+                  category_key: 'kapal_kecil', category_label: 'Kapal Kecil', amount: 600000000,
+                  sub_items: [
+                    { ship_id: 'KK-001', ship_name: 'Kapal Kecil A', allocated: 60000000, used: 30000000 },
+                    { ship_id: 'KK-002', ship_name: 'Kapal Kecil B', allocated: 60000000, used: 42000000 },
+                    { ship_id: 'KK-003', ship_name: 'Kapal Kecil C', allocated: 60000000, used: 18000000 },
+                  ]
+                },
+                kapal_medium: {
+                  category_key: 'kapal_medium', category_label: 'Kapal Medium', amount: 900000000,
+                  sub_items: [
+                    { ship_id: 'KM-001', ship_name: 'Kapal Medium A', allocated: 180000000, used: 90000000 },
+                    { ship_id: 'KM-002', ship_name: 'Kapal Medium B', allocated: 180000000, used: 120000000 },
+                    { ship_id: 'KM-003', ship_name: 'Kapal Medium C', allocated: 180000000, used: 54000000 },
+                  ]
+                },
+                kapal_besar: DUMMY.right_detail || {
+                  category_key: 'kapal_besar', category_label: 'Kapal Besar', amount: 1000000000,
+                  sub_items: [
+                    { ship_id: 'KB-001', ship_name: 'Kapal Besar A', allocated: 166666667, used: 100000000 },
+                    { ship_id: 'KB-002', ship_name: 'Kapal Besar B', allocated: 166666667, used: 150000000 },
+                    { ship_id: 'KB-003', ship_name: 'Kapal Besar C', allocated: 166666667, used: 80000000 },
+                  ]
+                },
+              };
+              const payload = map[category_key] || { category_key, category_label: category_key, amount: 0, sub_items: [] };
+              return new Response(JSON.stringify(payload), { headers: { 'Content-Type': 'application/json' } });
+            }
+
+            if (path === '/api/budget/categories/progress') {
+              return new Response(JSON.stringify(DUMMY.progress), { headers: { 'Content-Type': 'application/json' } });
+            }
+
+            if (path === '/api/ships/progress') {
+              const category = params.get('category') || 'kapal_kecil';
+              const page = parseInt(params.get('page') || '1', 10);
+              const perPage = parseInt(params.get('per_page') || '10', 10);
+              const all = (DUMMY.ships[category] || []).slice();
+              const total = all.length;
+              const start = (page - 1) * perPage;
+              const data = all.slice(start, start + perPage);
+              return new Response(JSON.stringify({ data, total, page, per_page: perPage }), { headers: { 'Content-Type': 'application/json' } });
+            }
+
+            if (path === '/api/shipping/history') {
+              // For demo: ignore q/sort; just paginate
+              const page = parseInt(params.get('page') || '1', 10);
+              const perPage = parseInt(params.get('per_page') || '25', 10);
+              const q = (params.get('q') || '').toLowerCase();
+              const sort = params.get('sort');
+              let rows = DUMMY.history.slice();
+              if (q) {
+                rows = rows.filter(r => Object.values(r).join(' ').toLowerCase().includes(q));
+              }
+              if (sort) {
+                const [col, dir] = sort.split('.');
+                rows.sort((a,b) => (a[col] > b[col] ? 1 : -1) * (dir === 'desc' ? -1 : 1));
+              }
+              const total = rows.length;
+              const start = (page - 1) * perPage;
+              const data = rows.slice(start, start + perPage);
+              return new Response(JSON.stringify({ data, total, page, per_page: perPage }), { headers: { 'Content-Type': 'application/json' } });
+            }
+
+            // Fallback to network
+            return originalFetch(input, init);
+          } catch (e) {
+            return originalFetch(input, init);
+          }
+        }
+      })();
+
+      // ===== UI Interactions: Sidebars =====
+      (function sidebarControls(){
+        const mobileSidebar = qs('#mobileSidebar');
+        const backdrop = qs('#mobileSidebarBackdrop');
+        const openBtn = qs('#btnOpenMobileSidebar');
+        const closeBtn = qs('#btnCloseMobileSidebar');
+
+        const openMobile = () => {
+          mobileSidebar.classList.remove('-translate-x-full');
+          backdrop.classList.remove('pointer-events-none');
+          backdrop.classList.add('opacity-100');
+        };
+        const closeMobile = () => {
+          mobileSidebar.classList.add('-translate-x-full');
+          backdrop.classList.add('pointer-events-none');
+          backdrop.classList.remove('opacity-100');
+        };
+        openBtn?.addEventListener('click', openMobile);
+        closeBtn?.addEventListener('click', closeMobile);
+        backdrop?.addEventListener('click', closeMobile);
+      })();
+
+      // Right detail sidebar controls
+      const rightDetail = {
+        root: qs('#rightDetail'),
+        title: qs('#rdTitle'),
+        subtitle: qs('#rdSubtitle'),
+        total: qs('#rdTotal'),
+        list: qs('#rdList'),
+        btnClose: qs('#btnCloseRight'),
+        open() { this.root.classList.remove('translate-x-full'); },
+        close() { this.root.classList.add('translate-x-full'); },
+        async populate(categoryKey, categoryLabel) {
+          this.title.textContent = categoryLabel || 'Detail Kategori';
+          this.subtitle.textContent = categoryKey;
+          this.list.innerHTML = '<div class="text-gray-500 text-sm">Memuat...</div>';
+          const res = await fetch(`/api/budget/categories/${categoryKey}/detail`);
+          const json = await res.json();
+          this.total.textContent = formatIDR(json.amount);
+          if (!json.sub_items || json.sub_items.length === 0) {
+            this.list.innerHTML = '<div class="text-gray-500 text-sm">Tidak ada data.</div>';
+            return;
+          }
+          // Render list
+          this.list.innerHTML = '';
+          json.sub_items.forEach(item => {
+            const percent = Math.min(100, Math.round((item.used / (item.allocated||1)) * 100));
+            const row = document.createElement('div');
+            row.className = 'p-3 rounded-lg border border-gray-100 bg-white';
+            row.innerHTML = `
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-medium">${item.ship_name} <span class="text-xs text-gray-500">(${item.ship_id})</span></div>
+                  <div class="text-xs text-gray-500">Dialokasikan: ${formatIDR(item.allocated)} · Terpakai: ${formatIDR(item.used)}</div>
+                </div>
+                <div class="text-sm font-semibold">${percent}%</div>
+              </div>
+              <div class="mt-2 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+                <div class="h-2 bg-accentBlue rounded-full" style="width:${percent}%"></div>
+              </div>
+            `;
+            this.list.appendChild(row);
+          });
+        }
+      };
+      rightDetail.btnClose.addEventListener('click', () => rightDetail.close());
+      qs('#btnExport').addEventListener('click', () => alert('Export belum diimplementasikan (demo).'));
+      qs('#btnOpenDetail').addEventListener('click', () => alert('Navigasi ke halaman detail (demo).'));
+
+      // ===== Stats =====
+      async function loadStats() {
+        const data = await fetch('/api/budget/summary').then(r => r.json());
+        qs('#statTotalBudget').textContent = formatIDR(data.total_budget);
+        qs('#statRemainingBudget').textContent = formatIDR(data.remaining_budget);
+        qs('#statOverBudget').textContent = formatIDR(data.over_budget);
+        qs('#statOffBudget').textContent = formatIDR(data.off_budget);
+      }
+
+      // ===== Donut Categories Chart =====
+      let donutChart, donutCategoriesCache;
+      async function initDonutCategories() {
+        const ctx = qs('#donutCategories');
+        const data = await fetch('/api/budget/categories').then(r => r.json());
+        donutCategoriesCache = data.categories;
+        const labels = data.categories.map(c => c.label);
+        const values = data.categories.map(c => c.amount);
+        const colors = data.categories.map(c => c.color);
+        donutChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: { labels, datasets: [{ label: 'Anggaran per Kategori', data: values, backgroundColor: colors, hoverOffset: 8, borderWidth: 2 }] },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' }, tooltip: { enabled: true } },
+            onClick: (evt, elements) => {
+              if (elements.length > 0) {
+                const idx = elements[0].index;
+                const clicked = donutCategoriesCache[idx];
+                rightDetail.populate(clicked.key, clicked.label);
+                rightDetail.open();
+              }
+            },
+          }
+        });
+      }
+
+      // ===== Category Progress Cards (mini doughnuts) =====
+      async function initProgressCards() {
+        const container = qs('#progressCards');
+        const items = await fetch('/api/budget/categories/progress').then(r => r.json());
+        container.innerHTML = '';
+        items.forEach((it, i) => {
+          const card = document.createElement('div');
+          card.className = 'rounded-xl shadow-card glass p-4 flex items-center gap-4 cursor-pointer hover:shadow-xl transition-shadow';
+          card.innerHTML = `
+            <div class="relative">
+              <canvas id="miniChart_${it.category_key}" width="80" height="80"></canvas>
+              <div class="absolute inset-0 grid place-items-center text-sm font-semibold">${it.used_percent}%</div>
+            </div>
+            <div class="min-w-0">
+              <div class="font-medium">${it.category_label}</div>
+              <div class="text-xs text-gray-500">Terpakai ${formatIDR(it.used_budget)} / ${formatIDR(it.total_budget)}</div>
+            </div>
+          `;
+          card.addEventListener('click', () => {
+            // Scroll to list and apply filter
+            selectCategoryTab(it.category_key);
+            document.getElementById('shipList').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+          container.appendChild(card);
+
+          // Init mini chart
+          const ctx = qs(`#miniChart_${it.category_key}`);
+          new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: ['Used', 'Remaining'], datasets: [{ data: [it.used_budget, Math.max(0, it.total_budget - it.used_budget)], backgroundColor: [it.color, '#e5e7eb'], borderWidth: 0 }] },
+            options: { cutout: '70%', rotation: -90, circumference: 360, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+          });
+        });
+      }
+
+      // ===== Ship Progress List =====
+      const shipState = { category: 'kapal_kecil', page: 1, perPage: 10, total: 0 };
+      function renderShipRow(row) {
+        const percent = Math.min(100, Math.round(row.progress_percent));
+        const el = document.createElement('div');
+        el.className = 'p-3 rounded-lg border border-gray-100 bg-white';
+        el.innerHTML = `
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="font-medium truncate">${row.ship_name} <span class="text-xs text-gray-500">(${row.id})</span></div>
+              <div class="text-xs text-gray-500">Alokasi: ${formatIDR(row.budget_allocated)} · Terpakai: ${formatIDR(row.budget_used)} · Status: ${row.delivery_status}</div>
+            </div>
+            <div class="text-sm font-semibold">${percent}%</div>
+          </div>
+          <div class="mt-2 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+            <div class="h-2 bg-accentGreen rounded-full" style="width:${percent}%"></div>
+          </div>
+        `;
+        return el;
+      }
+      async function loadShipList() {
+        const res = await fetch(`/api/ships/progress?category=${shipState.category}&page=${shipState.page}&per_page=${shipState.perPage}`);
+        const json = await res.json();
+        shipState.total = json.total;
+        const list = qs('#shipList');
+        list.innerHTML = '';
+        if (json.data.length === 0) {
+          list.innerHTML = '<div class="text-sm text-gray-500">Tidak ada data.</div>';
+        } else {
+          json.data.forEach(r => list.appendChild(renderShipRow(r)));
+        }
+        const totalPages = Math.max(1, Math.ceil(shipState.total / shipState.perPage));
+        qs('#shipPageInfo').textContent = `Hal ${shipState.page} / ${totalPages}`;
+      }
+      function selectCategoryTab(key) {
+        shipState.category = key;
+        shipState.page = 1;
+        qsa('.tabCat').forEach(btn => {
+          if (btn.dataset.cat === key) {
+            btn.classList.add('bg-white', 'shadow-sm');
+          } else {
+            btn.classList.remove('bg-white', 'shadow-sm');
+          }
+        });
+        loadShipList();
+      }
+      qsa('.tabCat').forEach(btn => btn.addEventListener('click', () => selectCategoryTab(btn.dataset.cat)));
+      qs('#shipPrev').addEventListener('click', () => { if (shipState.page > 1) { shipState.page--; loadShipList(); } });
+      qs('#shipNext').addEventListener('click', () => { const totalPages = Math.max(1, Math.ceil(shipState.total / shipState.perPage)); if (shipState.page < totalPages) { shipState.page++; loadShipList(); } });
+      qs('#shipPerPage').addEventListener('change', (e) => { shipState.perPage = parseInt(e.target.value, 10); shipState.page = 1; loadShipList(); });
+
+      // ===== History Table =====
+      async function initHistoryTable() {
+        // For demo, populate client-side to simple-datatables
+        const columns = [
+          { key: 'date', label: 'Tanggal' },
+          { key: 'ship_id', label: 'Ship ID' },
+          { key: 'ship_name', label: 'Nama Kapal' },
+          { key: 'item', label: 'Barang' },
+          { key: 'amount', label: 'Jumlah Terpakai (IDR)' },
+          { key: 'status', label: 'Status' },
+          { key: 'notes', label: 'Catatan' },
+        ];
+        const data = DUMMY.history.map(r => [r.date, r.ship_id, r.ship_name, r.item, formatIDR(r.amount), r.status, r.notes]);
+        const table = qs('#historyTable');
+        table.innerHTML = `
+          <thead><tr>${columns.map(c => `<th class="px-3 py-2 text-left">${c.label}</th>`).join('')}</tr></thead>
+          <tbody>${data.map(row => `<tr>${row.map(cell => `<td class=\"px-3 py-2\">${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+        `;
+        // eslint-disable-next-line no-undef
+        const dt = new simpleDatatables.DataTable(table, {
+          perPageSelect: [10, 25, 50],
+          perPage: 25,
+          searchable: true,
+          fixedHeight: false,
+        });
+        // Tailwind-ish styling improvements
+        table.parentElement.classList.add('datatable-wrapper');
+      }
+
+      // ===== Bootstrap all =====
+      (async function start(){
+        await loadStats();
+        await Promise.all([initDonutCategories(), initProgressCards()]);
+        selectCategoryTab('kapal_kecil');
+        await loadShipList();
+        await initHistoryTable();
+      })();
+    </script>
+  </body>
+</html>
