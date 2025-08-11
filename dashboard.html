@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Monitoring Budgeting - Kapal</title>
+  <!-- TailwindCSS v3.4.6 -->
+  <script src="https://cdn.tailwindcss.com/3.4.6"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Inter", "ui-sans-serif", "system-ui"],
+          },
+          colors: {
+            primary: {
+              DEFAULT: "#1f2937",
+              dark: "#111827",
+            },
+            accentBlue: "#60a5fa",
+            accentGreen: "#34d399",
+            accentOrange: "#f97316",
+          },
+        }
+      }
+    }
+  </script>
+  <!-- Simple-DataTables -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css">
+  <!-- Chart.js 4.x -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="bg-primary dark:text-white flex">
+  <!-- Left Sidebar -->
+  <aside id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-primary dark:bg-primary-dark text-white hidden lg:flex flex-col">
+    <div class="p-6 flex items-center gap-3">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-accentBlue" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18" /></svg>
+      <span class="text-xl font-bold">Kapal Dashboard</span>
+    </div>
+    <nav class="flex-1 px-4 space-y-2">
+      <template id="menu-item-template">
+        <a href="#" class="group flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accentBlue/20 transition">
+          <span class="icon"></span><span class="label"></span>
+        </a>
+      </template>
+      <div id="menu-container"></div>
+    </nav>
+    <div class="p-4 mt-auto flex items-center gap-3 bg-primary/50">
+      <img id="user-avatar" class="h-10 w-10 rounded-full" alt="avatar">
+      <div>
+        <p id="user-name" class="font-semibold"></p>
+        <button id="logout-btn" class="text-sm text-red-400 hover:underline">Logout</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="flex-1 flex flex-col lg:ml-72 min-h-screen">
+    <!-- Header -->
+    <header class="flex items-center justify-between p-4 bg-white/60 backdrop-blur sticky top-0 z-30 shadow-md dark:bg-primary-dark/60">
+      <h1 class="text-xl font-bold">Dashboard Budgeting Kapal</h1>
+      <div class="flex items-center gap-4">
+        <input type="text" placeholder="Cari..." class="border rounded-lg p-2 w-40 sm:w-64 focus:outline-none focus:ring-2 focus:ring-accentBlue">
+        <img src="https://ui-avatars.com/api/?name=Admin" class="h-8 w-8 rounded-full" alt="avatar">
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="p-6 space-y-6">
+      <!-- Stat Cards -->
+      <section id="stat-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></section>
+
+      <!-- Charts & Progress Cards -->
+      <section class="grid lg:grid-cols-3 gap-4 min-h-[300px]">
+        <!-- Donut Chart -->
+        <div class="bg-white rounded-xl shadow-lg p-4 flex flex-col" style="min-height:300px;">
+          <h2 class="font-semibold mb-2">Breakdown Anggaran per Kategori</h2>
+          <canvas id="donut-chart" class="flex-1"></canvas>
+        </div>
+
+        <!-- Progress Cards (span 2 rows on desktop) -->
+        <div class="lg:col-span-2 grid md:grid-cols-3 gap-4" id="progress-cards"></div>
+      </section>
+
+      <!-- List & History Table Row -->
+      <section class="grid lg:grid-cols-2 gap-4">
+        <!-- Ship Progress List Card -->
+        <div class="bg-white rounded-xl shadow-lg p-4 flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-semibold text-lg">Progress Kapal</h2>
+            <!-- Tabs -->
+            <div id="category-tabs" class="flex gap-2"></div>
+          </div>
+          <div id="ship-progress-list" class="space-y-3 overflow-y-auto" style="max-height:400px;"></div>
+        </div>
+
+        <!-- History Table -->
+        <div class="bg-white rounded-xl shadow-lg p-4">
+          <h2 class="font-semibold mb-4">Riwayat Pengiriman</h2>
+          <table id="history-table" class="min-w-full"></table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Right Detail Sidebar -->
+  <aside id="detail-sidebar" class="fixed top-0 right-0 h-full w-96 bg-white shadow-xl transform translate-x-full transition-transform duration-300 flex flex-col z-40">
+    <div class="p-4 flex items-center justify-between border-b">
+      <h2 id="detail-title" class="font-bold text-lg"></h2>
+      <button id="detail-close" class="text-gray-500 hover:text-gray-800">&times;</button>
+    </div>
+    <div id="detail-content" class="p-4 flex-1 overflow-y-auto"></div>
+  </aside>
+
+  <!-- Templates -->
+  <template id="stat-card-template">
+    <div class="rounded-xl p-4 shadow-lg text-white relative overflow-hidden">
+      <div class="absolute inset-0 opacity-20 bg-gradient-to-br from-accentBlue to-accentGreen"></div>
+      <div class="relative z-10">
+        <div class="text-sm" data-label></div>
+        <div class="text-2xl font-bold" data-value></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="progress-card-template">
+    <div class="bg-white rounded-xl shadow-lg p-4 flex flex-col items-center gap-2 cursor-pointer hover:ring-2 hover:ring-accentBlue transition">
+      <canvas class="w-24 h-24" data-chart></canvas>
+      <div class="text-center">
+        <h3 class="font-semibold" data-title></h3>
+        <p class="text-sm" data-desc></p>
+      </div>
+    </div>
+  </template>
+
+  <template id="ship-list-item-template">
+    <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100">
+      <div>
+        <p class="font-medium" data-name></p>
+        <p class="text-xs text-gray-500" data-status></p>
+      </div>
+      <div class="text-right">
+        <p class="text-sm" data-used></p>
+        <div class="w-32 bg-gray-200 rounded-full h-2 mt-1">
+          <div class="bg-accentBlue h-2 rounded-full" data-bar style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Scripts -->
+  <script>
+    /* ---------------------------------
+       Mock API Implementation
+    ---------------------------------*/
+    const mockData = {
+      '/api/budget/summary': {
+        total_budget: 2500000000,
+        remaining_budget: 650000000,
+        over_budget: 120000000,
+        off_budget: 50000000
+      },
+      '/api/budget/categories': {
+        categories: [
+          { key: 'kapal_kecil', label: 'Kapal Kecil', amount: 600000000, color: '#60a5fa' },
+          { key: 'kapal_medium', label: 'Kapal Medium', amount: 900000000, color: '#34d399' },
+          { key: 'kapal_besar', label: 'Kapal Besar', amount: 1000000000, color: '#f97316' }
+        ]
+      },
+      '/api/budget/categories/progress': [
+        { category_key: 'kapal_kecil', category_label: 'Kapal Kecil', total_budget: 600000000, used_budget: 280000000, used_percent: 46, color: '#60a5fa' },
+        { category_key: 'kapal_medium', category_label: 'Kapal Medium', total_budget: 900000000, used_budget: 540000000, used_percent: 60, color: '#34d399' },
+        { category_key: 'kapal_besar', category_label: 'Kapal Besar', total_budget: 1000000000, used_budget: 830000000, used_percent: 83, color: '#f97316' }
+      ],
+      '/api/ships/progress': {
+        kapal_kecil: [
+          { id: 'KK-001', ship_name: 'Kapal Kecil A', budget_allocated: 60000000, budget_used: 30000000, progress_percent: 50, delivery_status: 'In Transit' },
+          { id: 'KK-002', ship_name: 'Kapal Kecil B', budget_allocated: 60000000, budget_used: 42000000, progress_percent: 70, delivery_status: 'Delivered' },
+          { id: 'KK-003', ship_name: 'Kapal Kecil C', budget_allocated: 60000000, budget_used: 18000000, progress_percent: 30, delivery_status: 'Pending' },
+          { id: 'KK-004', ship_name: 'Kapal Kecil D', budget_allocated: 60000000, budget_used: 36000000, progress_percent: 60, delivery_status: 'In Transit' },
+          { id: 'KK-005', ship_name: 'Kapal Kecil E', budget_allocated: 60000000, budget_used: 6000000, progress_percent: 10, delivery_status: 'Pending' },
+          { id: 'KK-006', ship_name: 'Kapal Kecil F', budget_allocated: 60000000, budget_used: 48000000, progress_percent: 80, delivery_status: 'Delivered' },
+          { id: 'KK-007', ship_name: 'Kapal Kecil G', budget_allocated: 60000000, budget_used: 15000000, progress_percent: 25, delivery_status: 'In Transit' },
+          { id: 'KK-008', ship_name: 'Kapal Kecil H', budget_allocated: 60000000, budget_used: 30000000, progress_percent: 50, delivery_status: 'Delivered' },
+          { id: 'KK-009', ship_name: 'Kapal Kecil I', budget_allocated: 60000000, budget_used: 42000000, progress_percent: 70, delivery_status: 'In Transit' },
+          { id: 'KK-010', ship_name: 'Kapal Kecil J', budget_allocated: 60000000, budget_used: 54000000, progress_percent: 90, delivery_status: 'Delivered' }
+        ],
+        kapal_medium: [
+          { id: 'KM-001', ship_name: 'Kapal Medium A', budget_allocated: 180000000, budget_used: 90000000, progress_percent: 50, delivery_status: 'In Transit' },
+          { id: 'KM-002', ship_name: 'Kapal Medium B', budget_allocated: 180000000, budget_used: 120000000, progress_percent: 67, delivery_status: 'Delivered' },
+          { id: 'KM-003', ship_name: 'Kapal Medium C', budget_allocated: 180000000, budget_used: 54000000, progress_percent: 30, delivery_status: 'Pending' },
+          { id: 'KM-004', ship_name: 'Kapal Medium D', budget_allocated: 180000000, budget_used: 162000000, progress_percent: 90, delivery_status: 'Delivered' },
+          { id: 'KM-005', ship_name: 'Kapal Medium E', budget_allocated: 180000000, budget_used: 36000000, progress_percent: 20, delivery_status: 'In Transit' }
+        ],
+        kapal_besar: [
+          { id: 'KB-001', ship_name: 'Kapal Besar A', budget_allocated: 166666667, budget_used: 100000000, progress_percent: 60, delivery_status: 'In Transit' },
+          { id: 'KB-002', ship_name: 'Kapal Besar B', budget_allocated: 166666667, budget_used: 150000000, progress_percent: 90, delivery_status: 'Delivered' },
+          { id: 'KB-003', ship_name: 'Kapal Besar C', budget_allocated: 166666667, budget_used: 80000000, progress_percent: 48, delivery_status: 'Pending' },
+          { id: 'KB-004', ship_name: 'Kapal Besar D', budget_allocated: 166666667, budget_used: 166666667, progress_percent: 100, delivery_status: 'Delivered' },
+          { id: 'KB-005', ship_name: 'Kapal Besar E', budget_allocated: 166666667, budget_used: 90000000, progress_percent: 54, delivery_status: 'In Transit' },
+          { id: 'KB-006', ship_name: 'Kapal Besar F', budget_allocated: 166666667, budget_used: 40000000, progress_percent: 24, delivery_status: 'Pending' }
+        ]
+      },
+      '/api/shipping/history': {
+        data: [
+          { date: '2025-07-28', ship_id: 'KK-003', ship_name: 'Kapal Kecil C', item: 'BBM', amount: 1200000, status: 'Delivered', notes: '' },
+          { date: '2025-07-26', ship_id: 'KM-002', ship_name: 'Kapal Medium B', item: 'Spare Part Mesin', amount: 25000000, status: 'Delivered', notes: 'Urgent' },
+          { date: '2025-07-25', ship_id: 'KB-004', ship_name: 'Kapal Besar D', item: 'Kargo A', amount: 7800000, status: 'In Transit', notes: 'Delay 1 hari' },
+          { date: '2025-07-22', ship_id: 'KK-010', ship_name: 'Kapal Kecil J', item: 'Perlengkapan Deck', amount: 450000, status: 'Delivered', notes: '' },
+          { date: '2025-07-20', ship_id: 'KB-002', ship_name: 'Kapal Besar B', item: 'Container X', amount: 90000000, status: 'Delivered', notes: 'High priority' }
+        ]
+      }
+    };
+
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (url, opts) => {
+      const path = url.split('?')[0];
+      if (mockData[path]) {
+        return new Response(JSON.stringify(mockData[path]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return originalFetch(url, opts);
+    };
+
+    const toCurrency = (v) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v);
+
+    /* ---------------------------------
+       Initialization
+    ---------------------------------*/
+    document.addEventListener('DOMContentLoaded', () => {
+      initUser();
+      renderSidebarMenu();
+      loadStatCards();
+      loadDonutChart();
+      loadProgressCards();
+      loadHistoryTable();
+      initCategoryTabs();
+    });
+
+    /* User & Menu */
+    function initUser() {
+      const user = { username: 'user.nama', display_name: 'Admin Kapal', avatar_url: 'https://ui-avatars.com/api/?name=Admin+Kapal' };
+      document.getElementById('user-avatar').src = user.avatar_url;
+      document.getElementById('user-name').textContent = user.display_name;
+    }
+    function renderSidebarMenu() {
+      const menu = [
+        { key: 'dashboard', label: 'Dashboard', icon: 'grid' },
+        { key: 'shipments', label: 'Pengiriman', icon: 'truck' },
+        { key: 'budget', label: 'Anggaran', icon: 'wallet' },
+        { key: 'reports', label: 'Laporan', icon: 'file-text' },
+        { key: 'settings', label: 'Pengaturan', icon: 'settings' },
+      ];
+      const tpl = document.getElementById('menu-item-template');
+      const container = document.getElementById('menu-container');
+      menu.forEach(m => {
+        const node = tpl.content.cloneNode(true);
+        const a = node.querySelector('a');
+        a.querySelector('.label').textContent = m.label;
+        a.querySelector('.icon').innerHTML = `<svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><use href="https://unpkg.com/feather-icons/dist/feather-sprite.svg#${m.icon}"></use></svg>`;
+        container.appendChild(node);
+      });
+    }
+
+    /* Stat Cards */
+    async function loadStatCards() {
+      const res = await fetch('/api/budget/summary');
+      const data = await res.json();
+      const items = [
+        { label: 'Total Anggaran', value: data.total_budget },
+        { label: 'Sisa Anggaran', value: data.remaining_budget },
+        { label: 'Over Budget', value: data.over_budget },
+        { label: 'Off Budget', value: data.off_budget }
+      ];
+      const container = document.getElementById('stat-cards');
+      const tpl = document.getElementById('stat-card-template');
+      items.forEach((it, idx) => {
+        const node = tpl.content.cloneNode(true);
+        const card = node.querySelector('div');
+        if (idx === 2) card.classList.add('bg-red-500');
+        else if (idx === 3) card.classList.add('bg-yellow-500');
+        else card.classList.add('bg-accentBlue');
+        card.querySelector('[data-label]').textContent = it.label;
+        card.querySelector('[data-value]').textContent = toCurrency(it.value);
+        container.appendChild(node);
+      });
+    }
+
+    /* Donut Chart */
+    let donutChart;
+    async function loadDonutChart() {
+      const res = await fetch('/api/budget/categories');
+      const { categories } = await res.json();
+      const ctx = document.getElementById('donut-chart');
+      donutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: categories.map(c => c.label),
+          datasets: [{
+            label: 'Anggaran per Kategori',
+            data: categories.map(c => c.amount),
+            backgroundColor: categories.map(c => c.color),
+            hoverOffset: 8,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: { enabled: true }
+          },
+          onClick: (evt) => {
+            const points = donutChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+            if (points.length) {
+              const idx = points[0].index;
+              openDetailSidebar(categories[idx]);
+            }
+          }
+        }
+      });
+    }
+
+    /* Progress Cards */
+    async function loadProgressCards() {
+      const res = await fetch('/api/budget/categories/progress');
+      const data = await res.json();
+      const container = document.getElementById('progress-cards');
+      const tpl = document.getElementById('progress-card-template');
+      data.forEach(item => {
+        const node = tpl.content.cloneNode(true);
+        const card = node.querySelector('div');
+        const canvas = node.querySelector('[data-chart]');
+        const title = node.querySelector('[data-title]');
+        const desc = node.querySelector('[data-desc]');
+        title.textContent = item.category_label;
+        desc.textContent = `${toCurrency(item.used_budget)} / ${toCurrency(item.total_budget)}`;
+        new Chart(canvas, {
+          type: 'doughnut',
+          data: {
+            labels: ['Digunakan', 'Sisa'],
+            datasets: [{
+              data: [item.used_percent, 100 - item.used_percent],
+              backgroundColor: [item.color, '#e5e7eb'],
+              borderWidth: 0,
+            }]
+          },
+          options: { cutout: '70%', rotation: -90, circumference: 360, plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: false }
+        });
+        card.addEventListener('click', () => scrollToList(item.category_key));
+        container.appendChild(node);
+      });
+    }
+
+    /* Category Tabs & Ship List */
+    function initCategoryTabs() {
+      const categories = [
+        { key: 'kapal_kecil', label: 'Kapal Kecil' },
+        { key: 'kapal_medium', label: 'Kapal Medium' },
+        { key: 'kapal_besar', label: 'Kapal Besar' },
+      ];
+      const container = document.getElementById('category-tabs');
+      categories.forEach((c, idx) => {
+        const btn = document.createElement('button');
+        btn.textContent = c.label;
+        btn.className = 'px-3 py-1 rounded-lg text-sm ' + (idx === 0 ? 'bg-accentBlue text-white' : 'bg-gray-200');
+        btn.addEventListener('click', () => selectCategoryTab(c.key));
+        btn.dataset.key = c.key;
+        container.appendChild(btn);
+      });
+      loadShipProgress('kapal_kecil');
+    }
+    function selectCategoryTab(key) {
+      document.querySelectorAll('#category-tabs button').forEach(b => {
+        if (b.dataset.key === key) b.className = 'px-3 py-1 rounded-lg text-sm bg-accentBlue text-white';
+        else b.className = 'px-3 py-1 rounded-lg text-sm bg-gray-200';
+      });
+      loadShipProgress(key);
+    }
+    async function loadShipProgress(categoryKey) {
+      const data = mockData['/api/ships/progress'][categoryKey] || [];
+      const container = document.getElementById('ship-progress-list');
+      container.innerHTML = '';
+      const tpl = document.getElementById('ship-list-item-template');
+      data.forEach(item => {
+        const node = tpl.content.cloneNode(true);
+        node.querySelector('[data-name]').textContent = item.ship_name;
+        node.querySelector('[data-status]').textContent = item.delivery_status;
+        node.querySelector('[data-used]').textContent = toCurrency(item.budget_used);
+        node.querySelector('[data-bar]').style.width = item.progress_percent + '%';
+        container.appendChild(node);
+      });
+    }
+    function scrollToList(categoryKey) {
+      selectCategoryTab(categoryKey);
+      document.getElementById('ship-progress-list').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    /* History Table */
+    async function loadHistoryTable() {
+      const res = await fetch('/api/shipping/history');
+      const { data } = await res.json();
+      const tableElem = document.getElementById('history-table');
+      const headers = ['Tanggal', 'Ship ID', 'Nama Kapal', 'Barang', 'Jumlah Terpakai', 'Status', 'Catatan'];
+      const tableHtml = [`<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>` +
+        data.map(r => `<tr><td>${r.date}</td><td>${r.ship_id}</td><td>${r.ship_name}</td><td>${r.item}</td><td>${toCurrency(r.amount)}</td><td>${r.status}</td><td>${r.notes}</td></tr>`).join('') + '</tbody>'];
+      tableElem.innerHTML = tableHtml.join('');
+      new simpleDatatables.DataTable(tableElem, { perPageSelect: [10, 25, 50], perPage: 10, searchable: true, fixedHeight: true });
+    }
+
+    /* Detail Sidebar */
+    async function openDetailSidebar(category) {
+      const res = await fetch(`/api/budget/categories/${category.key}/detail`);
+      const detail = res.ok ? await res.json() : { ...category, sub_items: [] };
+      document.getElementById('detail-title').textContent = detail.category_label + ' - Detail';
+      const container = document.getElementById('detail-content');
+      container.innerHTML = '';
+      container.insertAdjacentHTML('beforeend', `<p class="font-semibold mb-2">Total: ${toCurrency(detail.amount)}</p>`);
+      detail.sub_items.forEach(si => {
+        container.insertAdjacentHTML('beforeend', `<div class="flex justify-between py-1 border-b"><span>${si.ship_name}</span><span>${toCurrency(si.used)}</span></div>`);
+      });
+      document.getElementById('detail-sidebar').classList.remove('translate-x-full');
+    }
+    document.getElementById('detail-close').addEventListener('click', () => {
+      document.getElementById('detail-sidebar').classList.add('translate-x-full');
+    });
+  </script>
+  <!-- Feather Icons Sprite for icons -->
+  <script src="https://unpkg.com/feather-icons/dist/feather-sprite.js" defer></script>
+</body>
+</html>
