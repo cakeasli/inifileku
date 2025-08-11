@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="id" class="h-full bg-slate-50">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard Monitoring Budgeting - Kapal</title>
+
+    <!-- Tailwind CSS v3.4.6 CDN with plugins -->
+    <script src="https://cdn.tailwindcss.com/3.4.6"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica", "Arial", "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"],
+            },
+            colors: {
+              primary: { 900: "#111827", 800: "#1f2937" },
+              accent: { blue: "#60a5fa", green: "#34d399", orange: "#f97316" },
+            },
+            boxShadow: {
+              xl2: "0 20px 45px -12px rgba(0, 0, 0, 0.25)",
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chart.js 4.x -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    <!-- Simple-DataTables -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-datatables@9.0.4/dist/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@9.0.4"></script>
+
+    <style>
+      .glass {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-radius: 0.75rem;
+      }
+      .sidebar-fixed {
+        height: 100vh;
+      }
+      .scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
+      .scrollbar-thin::-webkit-scrollbar-thumb { background-color: rgba(15, 23, 42, 0.2); border-radius: 9999px; }
+      .scrollbar-thin::-webkit-scrollbar-track { background-color: transparent; }
+      .offcanvas-enter { transform: translateX(100%); }
+      .offcanvas-enter-active { transform: translateX(0); transition: transform 300ms ease; }
+      .offcanvas-leave { transform: translateX(0); }
+      .offcanvas-leave-active { transform: translateX(100%); transition: transform 300ms ease; }
+    </style>
+  </head>
+  <body class="h-full text-slate-800">
+    <!-- Mobile top bar -->
+    <div class="lg:hidden sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
+      <div class="flex items-center justify-between px-4 py-3">
+        <button id="btnMobileSidebar" class="p-2 rounded-lg hover:bg-slate-100" aria-label="Buka menu">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
+        <div class="font-semibold">Dashboard Budget Kapal</div>
+        <img src="https://ui-avatars.com/api/?name=Admin+Kapal" alt="avatar" class="w-8 h-8 rounded-full" />
+      </div>
+    </div>
+
+    <div class="min-h-screen flex">
+      <!-- Left Sidebar -->
+      <aside id="leftSidebar" class="sidebar-fixed hidden lg:flex flex-col w-72 bg-gradient-to-b from-slate-900 to-slate-800 text-white sticky top-0 z-40">
+        <div class="px-6 py-5 border-b border-white/10">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                <path d="M2.25 12l8.954-8.955c.44-.439 1.152-.128 1.152.493V8.25c4.546.25 8.946 1.106 8.946 6.726 0 1.786-.625 3.253-1.67 4.43-.327.37-.93.092-.93-.373v-2.496c0-3.815-4.018-4.636-6.346-4.75v5.149c0 .62-.713.932-1.152.493L2.25 12z" />
+              </svg>
+            </div>
+            <div>
+              <div class="text-lg font-semibold">Kapal Monitor</div>
+              <div class="text-xs text-white/70">Budgeting Dashboard</div>
+            </div>
+          </div>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20">
+            <span class="inline-flex w-5"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75h16.5v16.5H3.75z" /></svg></span>
+            <span>Dashboard</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10">
+            <span class="inline-flex w-5"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M1.5 8.25l10.125 3.71a4.5 4.5 0 013.18 3.18L18.515 21H21l-1.86-6.98a7.5 7.5 0 00-5.3-5.3L6.86 6H3.75A2.25 2.25 0 001.5 8.25z"/></svg></span>
+            <span>Pengiriman</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10">
+            <span class="inline-flex w-5"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg></span>
+            <span>Anggaran</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10">
+            <span class="inline-flex w-5"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h18M3 9h18M3 13.5h18M3 18h18"/></svg></span>
+            <span>Laporan</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10">
+            <span class="inline-flex w-5"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h3m-6 12h9M4.5 12h15"/></svg></span>
+            <span>Pengaturan</span>
+          </a>
+        </nav>
+        <div class="mt-auto border-t border-white/10 p-4">
+          <div class="flex items-center gap-3">
+            <img src="https://ui-avatars.com/api/?name=Admin+Kapal" class="w-10 h-10 rounded-full" alt="avatar" />
+            <div class="text-sm">
+              <div class="font-semibold">Admin Kapal</div>
+              <div class="text-white/70">user.nama</div>
+            </div>
+          </div>
+          <button class="mt-4 w-full px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm">Keluar</button>
+        </div>
+      </aside>
+
+      <!-- Overlay for mobile sidebar -->
+      <div id="mobileOverlay" class="fixed inset-0 bg-black/40 hidden z-30 lg:hidden"></div>
+      <aside id="mobileSidebar" class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-slate-900 to-slate-800 text-white z-40 transform -translate-x-full transition-transform lg:hidden">
+        <div class="px-6 py-5 border-b border-white/10 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M2.25 12l8.954-8.955c.44-.439 1.152-.128 1.152.493V8.25c4.546.25 8.946 1.106 8.946 6.726 0 1.786-.625 3.253-1.67 4.43-.327.37-.93.092-.93-.373v-2.496c0-3.815-4.018-4.636-6.346-4.75v5.149c0 .62-.713.932-1.152.493L2.25 12z"/></svg>
+            </div>
+            <div class="text-base font-semibold">Kapal Monitor</div>
+          </div>
+          <button id="btnCloseMobileSidebar" class="p-2 rounded-lg hover:bg-white/10" aria-label="Tutup menu">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <nav class="px-3 py-4 space-y-1">
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20">Dashboard</a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10">Pengiriman</a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10">Anggaran</a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10">Laporan</a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10">Pengaturan</a>
+        </nav>
+      </aside>
+
+      <!-- Main content -->
+      <div class="flex-1 min-w-0">
+        <!-- Header -->
+        <header class="hidden lg:flex sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-200">
+          <div class="w-full flex items-center justify-between px-6 py-4">
+            <div class="text-lg font-semibold">Dashboard Monitoring Budgeting</div>
+            <div class="flex items-center gap-4">
+              <div class="relative">
+                <input id="globalSearch" class="w-72 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-blue" placeholder="Cari..." />
+                <span class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 105.1 5.1a7.5 7.5 0 0011.55 11.55z"/></svg>
+                </span>
+              </div>
+              <img src="https://ui-avatars.com/api/?name=Admin+Kapal" class="w-9 h-9 rounded-full" alt="avatar" />
+            </div>
+          </div>
+        </header>
+
+        <main class="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          <!-- Summary stat cards -->
+          <section>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="statCards">
+              <!-- Cards rendered by JS -->
+            </div>
+          </section>
+
+          <!-- Charts row -->
+          <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Donut chart container -->
+            <div class="lg:col-span-2 glass p-4">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">Breakdown Anggaran per Kategori</h3>
+              </div>
+              <div class="mt-4 h-80">
+                <canvas id="donutCategories"></canvas>
+              </div>
+            </div>
+            <!-- Progress cards stacked -->
+            <div class="space-y-4">
+              <div class="glass p-4" data-card-category="kapal_kecil">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-semibold">Kapal Kecil</h4>
+                  <button class="text-sm text-accent-blue hover:underline" data-action="scrollToList" data-target="kapal_kecil">Lihat daftar</button>
+                </div>
+                <div class="mt-4 flex items-center gap-4">
+                  <div class="w-20 h-20">
+                    <canvas id="miniChartKecil"></canvas>
+                  </div>
+                  <div class="flex-1">
+                    <div class="text-sm text-slate-500">Terpakai / Total</div>
+                    <div class="font-semibold" id="miniKecilLabel">-</div>
+                    <div class="mt-2 h-2 bg-slate-200 rounded-full">
+                      <div id="miniKecilBar" class="h-2 bg-accent-blue rounded-full" style="width:0%"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="glass p-4" data-card-category="kapal_medium">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-semibold">Kapal Medium</h4>
+                  <button class="text-sm text-accent-green hover:underline" data-action="scrollToList" data-target="kapal_medium">Lihat daftar</button>
+                </div>
+                <div class="mt-4 flex items-center gap-4">
+                  <div class="w-20 h-20">
+                    <canvas id="miniChartMedium"></canvas>
+                  </div>
+                  <div class="flex-1">
+                    <div class="text-sm text-slate-500">Terpakai / Total</div>
+                    <div class="font-semibold" id="miniMediumLabel">-</div>
+                    <div class="mt-2 h-2 bg-slate-200 rounded-full">
+                      <div id="miniMediumBar" class="h-2 bg-accent-green rounded-full" style="width:0%"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="glass p-4" data-card-category="kapal_besar">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-semibold">Kapal Besar</h4>
+                  <button class="text-sm text-accent-orange hover:underline" data-action="scrollToList" data-target="kapal_besar">Lihat daftar</button>
+                </div>
+                <div class="mt-4 flex items-center gap-4">
+                  <div class="w-20 h-20">
+                    <canvas id="miniChartBesar"></canvas>
+                  </div>
+                  <div class="flex-1">
+                    <div class="text-sm text-slate-500">Terpakai / Total</div>
+                    <div class="font-semibold" id="miniBesarLabel">-</div>
+                    <div class="mt-2 h-2 bg-slate-200 rounded-full">
+                      <div id="miniBesarBar" class="h-2 bg-accent-orange rounded-full" style="width:0%"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- List and table row -->
+          <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Ship progress list (2 cols) -->
+            <div class="lg:col-span-2 glass p-4" id="shipListSection">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">Progress Kapal</h3>
+                <div class="flex bg-slate-100 rounded-lg p-1 text-sm">
+                  <button class="px-3 py-1 rounded-md" data-tab="kapal_kecil" id="tabKecil">Kecil</button>
+                  <button class="px-3 py-1 rounded-md" data-tab="kapal_medium" id="tabMedium">Medium</button>
+                  <button class="px-3 py-1 rounded-md" data-tab="kapal_besar" id="tabBesar">Besar</button>
+                </div>
+              </div>
+
+              <div class="mt-4 divide-y" id="shipList">
+                <!-- rows by JS -->
+              </div>
+
+              <div class="mt-4 flex items-center justify-between text-sm">
+                <div id="shipListInfo" class="text-slate-500">&nbsp;</div>
+                <div class="flex items-center gap-2">
+                  <button id="prevPage" class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50">Prev</button>
+                  <span id="pageIndicator" class="inline-block w-12 text-center"></span>
+                  <button id="nextPage" class="px-3 py-1 rounded-lg border border-slate-300 hover:bg-slate-50">Next</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- History table -->
+            <div class="glass p-4">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">Riwayat Pengiriman</h3>
+              </div>
+              <div class="mt-4">
+                <table id="historyTable" class="min-w-full">
+                  <thead>
+                    <tr>
+                      <th>Tanggal</th>
+                      <th>Ship ID</th>
+                      <th>Nama Kapal</th>
+                      <th>Barang</th>
+                      <th>Jumlah Terpakai (IDR)</th>
+                      <th>Status</th>
+                      <th>Catatan</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <!-- Right detail offcanvas -->
+      <div id="detailOverlay" class="fixed inset-0 bg-black/40 hidden z-40"></div>
+      <aside id="rightDetail" class="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 transform translate-x-full transition-transform">
+        <div class="p-4 border-b flex items-center justify-between">
+          <div>
+            <div class="text-xs text-slate-500">Detail Kategori</div>
+            <div id="detailTitle" class="font-semibold">-</div>
+          </div>
+          <button id="btnCloseDetail" class="p-2 rounded-lg hover:bg-slate-100" aria-label="Tutup detail">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="p-4 space-y-4 overflow-y-auto h-[calc(100%-64px)]">
+          <div class="glass p-4">
+            <div class="text-sm text-slate-500">Total Anggaran</div>
+            <div id="detailAmount" class="text-xl font-semibold">-</div>
+          </div>
+          <div>
+            <div class="font-semibold mb-2">Per Kapal</div>
+            <div id="detailList" class="space-y-3"></div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btnExport" class="px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-sm">Export</button>
+            <button id="btnOpenFull" class="px-3 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800 text-sm">Buka Detail</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <script>
+      // Util: format currency IDR
+      function formatIDR(value) {
+        try {
+          return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
+        } catch (e) {
+          return `Rp ${value.toLocaleString('id-ID')}`;
+        }
+      }
+
+      // Mock API data per spec
+      const MOCK = {
+        "/api/budget/summary": { total_budget: 2500000000, remaining_budget: 650000000, over_budget: 120000000, off_budget: 50000000 },
+        "/api/budget/categories": {
+          categories: [
+            { key: "kapal_kecil", label: "Kapal Kecil", amount: 600000000, color: "#60a5fa" },
+            { key: "kapal_medium", label: "Kapal Medium", amount: 900000000, color: "#34d399" },
+            { key: "kapal_besar", label: "Kapal Besar", amount: 1000000000, color: "#f97316" },
+          ],
+        },
+        "/api/budget/categories/progress": [
+          { category_key: "kapal_kecil", category_label: "Kapal Kecil", total_budget: 600000000, used_budget: 280000000, used_percent: 46, color: "#60a5fa" },
+          { category_key: "kapal_medium", category_label: "Kapal Medium", total_budget: 900000000, used_budget: 540000000, used_percent: 60, color: "#34d399" },
+          { category_key: "kapal_besar", category_label: "Kapal Besar", total_budget: 1000000000, used_budget: 830000000, used_percent: 83, color: "#f97316" },
+        ],
+        "/api/ships/progress": {
+          kapal_kecil: [
+            { id: "KK-001", ship_name: "Kapal Kecil A", budget_allocated: 60000000, budget_used: 30000000, progress_percent: 50, delivery_status: "In Transit" },
+            { id: "KK-002", ship_name: "Kapal Kecil B", budget_allocated: 60000000, budget_used: 42000000, progress_percent: 70, delivery_status: "Delivered" },
+            { id: "KK-003", ship_name: "Kapal Kecil C", budget_allocated: 60000000, budget_used: 18000000, progress_percent: 30, delivery_status: "Pending" },
+            { id: "KK-004", ship_name: "Kapal Kecil D", budget_allocated: 60000000, budget_used: 36000000, progress_percent: 60, delivery_status: "In Transit" },
+            { id: "KK-005", ship_name: "Kapal Kecil E", budget_allocated: 60000000, budget_used: 6000000, progress_percent: 10, delivery_status: "Pending" },
+            { id: "KK-006", ship_name: "Kapal Kecil F", budget_allocated: 60000000, budget_used: 48000000, progress_percent: 80, delivery_status: "Delivered" },
+            { id: "KK-007", ship_name: "Kapal Kecil G", budget_allocated: 60000000, budget_used: 15000000, progress_percent: 25, delivery_status: "In Transit" },
+            { id: "KK-008", ship_name: "Kapal Kecil H", budget_allocated: 60000000, budget_used: 30000000, progress_percent: 50, delivery_status: "Delivered" },
+            { id: "KK-009", ship_name: "Kapal Kecil I", budget_allocated: 60000000, budget_used: 42000000, progress_percent: 70, delivery_status: "In Transit" },
+            { id: "KK-010", ship_name: "Kapal Kecil J", budget_allocated: 60000000, budget_used: 54000000, progress_percent: 90, delivery_status: "Delivered" },
+          ],
+          kapal_medium: [
+            { id: "KM-001", ship_name: "Kapal Medium A", budget_allocated: 180000000, budget_used: 90000000, progress_percent: 50, delivery_status: "In Transit" },
+            { id: "KM-002", ship_name: "Kapal Medium B", budget_allocated: 180000000, budget_used: 120000000, progress_percent: 67, delivery_status: "Delivered" },
+            { id: "KM-003", ship_name: "Kapal Medium C", budget_allocated: 180000000, budget_used: 54000000, progress_percent: 30, delivery_status: "Pending" },
+            { id: "KM-004", ship_name: "Kapal Medium D", budget_allocated: 180000000, budget_used: 162000000, progress_percent: 90, delivery_status: "Delivered" },
+            { id: "KM-005", ship_name: "Kapal Medium E", budget_allocated: 180000000, budget_used: 36000000, progress_percent: 20, delivery_status: "In Transit" },
+          ],
+          kapal_besar: [
+            { id: "KB-001", ship_name: "Kapal Besar A", budget_allocated: 166666667, budget_used: 100000000, progress_percent: 60, delivery_status: "In Transit" },
+            { id: "KB-002", ship_name: "Kapal Besar B", budget_allocated: 166666667, budget_used: 150000000, progress_percent: 90, delivery_status: "Delivered" },
+            { id: "KB-003", ship_name: "Kapal Besar C", budget_allocated: 166666667, budget_used: 80000000, progress_percent: 48, delivery_status: "Pending" },
+            { id: "KB-004", ship_name: "Kapal Besar D", budget_allocated: 166666667, budget_used: 166666667, progress_percent: 100, delivery_status: "Delivered" },
+            { id: "KB-005", ship_name: "Kapal Besar E", budget_allocated: 166666667, budget_used: 90000000, progress_percent: 54, delivery_status: "In Transit" },
+            { id: "KB-006", ship_name: "Kapal Besar F", budget_allocated: 166666667, budget_used: 40000000, progress_percent: 24, delivery_status: "Pending" },
+          ],
+        },
+        "/api/shipping/history": {
+          data: [
+            { date: "2025-07-28", ship_id: "KK-003", ship_name: "Kapal Kecil C", item: "BBM", amount: 1200000, status: "Delivered", notes: "" },
+            { date: "2025-07-26", ship_id: "KM-002", ship_name: "Kapal Medium B", item: "Spare Part Mesin", amount: 25000000, status: "Delivered", notes: "Urgent" },
+            { date: "2025-07-25", ship_id: "KB-004", ship_name: "Kapal Besar D", item: "Kargo A", amount: 7800000, status: "In Transit", notes: "Delay 1 hari" },
+            { date: "2025-07-22", ship_id: "KK-010", ship_name: "Kapal Kecil J", item: "Perlengkapan Deck", amount: 450000, status: "Delivered", notes: "" },
+            { date: "2025-07-20", ship_id: "KB-002", ship_name: "Kapal Besar B", item: "Container X", amount: 90000000, status: "Delivered", notes: "High priority" },
+          ],
+          total: 5,
+          page: 1,
+          per_page: 25,
+        },
+        "/api/budget/categories/detail/kapal_kecil": {
+          category_key: "kapal_kecil",
+          category_label: "Kapal Kecil",
+          amount: 600000000,
+          sub_items: [
+            { ship_id: "KK-001", ship_name: "Kapal Kecil A", allocated: 60000000, used: 30000000 },
+            { ship_id: "KK-002", ship_name: "Kapal Kecil B", allocated: 60000000, used: 42000000 },
+            { ship_id: "KK-003", ship_name: "Kapal Kecil C", allocated: 60000000, used: 18000000 },
+          ],
+        },
+        "/api/budget/categories/detail/kapal_medium": {
+          category_key: "kapal_medium",
+          category_label: "Kapal Medium",
+          amount: 900000000,
+          sub_items: [
+            { ship_id: "KM-001", ship_name: "Kapal Medium A", allocated: 180000000, used: 90000000 },
+            { ship_id: "KM-002", ship_name: "Kapal Medium B", allocated: 180000000, used: 120000000 },
+            { ship_id: "KM-003", ship_name: "Kapal Medium C", allocated: 180000000, used: 54000000 },
+          ],
+        },
+        "/api/budget/categories/detail/kapal_besar": {
+          category_key: "kapal_besar",
+          category_label: "Kapal Besar",
+          amount: 1000000000,
+          sub_items: [
+            { ship_id: "KB-001", ship_name: "Kapal Besar A", allocated: 166666667, used: 100000000 },
+            { ship_id: "KB-002", ship_name: "Kapal Besar B", allocated: 166666667, used: 150000000 },
+            { ship_id: "KB-003", ship_name: "Kapal Besar C", allocated: 166666667, used: 80000000 },
+          ],
+        },
+      };
+
+      // Simple fetch mock to return above data for demo purposes
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async function(url, options = {}) {
+        const u = typeof url === 'string' ? url : url.url;
+        // Summary
+        if (u.endsWith('/api/budget/summary')) {
+          return new Response(JSON.stringify(MOCK['/api/budget/summary']), { headers: { 'Content-Type': 'application/json' } });
+        }
+        // Categories
+        if (u.endsWith('/api/budget/categories')) {
+          return new Response(JSON.stringify(MOCK['/api/budget/categories']), { headers: { 'Content-Type': 'application/json' } });
+        }
+        // Categories progress
+        if (u.endsWith('/api/budget/categories/progress')) {
+          return new Response(JSON.stringify(MOCK['/api/budget/categories/progress']), { headers: { 'Content-Type': 'application/json' } });
+        }
+        // Ships progress with query param category
+        if (u.startsWith(location.origin) || u.startsWith('/')) {
+          const urlObj = new URL(u, location.origin);
+          if (urlObj.pathname === '/api/ships/progress') {
+            const category = urlObj.searchParams.get('category') || 'kapal_kecil';
+            const page = parseInt(urlObj.searchParams.get('page') || '1', 10);
+            const perPage = parseInt(urlObj.searchParams.get('per_page') || '5', 10);
+            const all = MOCK['/api/ships/progress'][category] || [];
+            const start = (page - 1) * perPage;
+            const data = all.slice(start, start + perPage);
+            const body = { data, total: all.length, page, per_page: perPage };
+            return new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } });
+          }
+          if (urlObj.pathname === '/api/shipping/history') {
+            // Very simple: ignore filters and return mock
+            return new Response(JSON.stringify(MOCK['/api/shipping/history']), { headers: { 'Content-Type': 'application/json' } });
+          }
+          // Detail by category
+          const detailMatch = urlObj.pathname.match(/^\/api\/budget\/categories\/(.+)\/detail$/);
+          if (detailMatch) {
+            const key = detailMatch[1];
+            const mapKey = `/api/budget/categories/detail/${key}`;
+            return new Response(JSON.stringify(MOCK[mapKey]), { headers: { 'Content-Type': 'application/json' } });
+          }
+        }
+        return originalFetch(url, options);
+      };
+
+      // UI State
+      const state = {
+        currentCategoryTab: 'kapal_kecil',
+        shipsPage: 1,
+        shipsPerPage: 5,
+        donutChart: null,
+        miniCharts: {},
+      };
+
+      // Init
+      document.addEventListener('DOMContentLoaded', async () => {
+        setupSidebarMobile();
+        await renderStatCards();
+        await renderDonutChart();
+        await renderMiniCards();
+        setupShipTabs();
+        await renderShipList();
+        await renderHistoryTable();
+        setupCardScrollButtons();
+      });
+
+      function setupSidebarMobile() {
+        const btn = document.getElementById('btnMobileSidebar');
+        const closeBtn = document.getElementById('btnCloseMobileSidebar');
+        const sidebar = document.getElementById('mobileSidebar');
+        const overlay = document.getElementById('mobileOverlay');
+        function open() { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); }
+        function close() { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
+        btn?.addEventListener('click', open);
+        closeBtn?.addEventListener('click', close);
+        overlay?.addEventListener('click', close);
+      }
+
+      async function renderStatCards() {
+        const container = document.getElementById('statCards');
+        const data = await (await fetch('/api/budget/summary')).json();
+        const items = [
+          { key: 'total_budget', label: 'Total Anggaran', color: 'from-sky-400 to-blue-600', icon: '💰' },
+          { key: 'remaining_budget', label: 'Sisa Anggaran', color: 'from-emerald-400 to-green-600', icon: '📦' },
+          { key: 'over_budget', label: 'Over Budget', color: 'from-rose-400 to-red-600', icon: '⚠️' },
+          { key: 'off_budget', label: 'Off Budget', color: 'from-amber-400 to-orange-600', icon: '📌' },
+        ];
+        container.innerHTML = items.map((it) => `
+          <div class="glass p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm text-slate-500">${it.label}</div>
+                <div class="text-xl font-semibold">${formatIDR(data[it.key])}</div>
+              </div>
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br ${it.color} text-white flex items-center justify-center text-xl">${it.icon}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      async function renderDonutChart() {
+        const ctx = document.getElementById('donutCategories');
+        const { categories } = await (await fetch('/api/budget/categories')).json();
+        const labels = categories.map(c => c.label);
+        const data = categories.map(c => c.amount);
+        const colors = categories.map(c => c.color);
+        const border = colors.map(() => '#ffffff');
+        state.donutChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: { labels, datasets: [{ label: 'Anggaran per Kategori', data, backgroundColor: colors, hoverOffset: 8, borderWidth: 2, borderColor: border }] },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' }, tooltip: { enabled: true } },
+            onClick: async (evt, elements) => {
+              if (elements.length > 0) {
+                const idx = elements[0].index;
+                const cat = categories[idx];
+                await openRightDetail(cat.key, cat.label, cat.amount);
+              }
+            },
+          },
+        });
+      }
+
+      async function renderMiniCards() {
+        const progress = await (await fetch('/api/budget/categories/progress')).json();
+        const map = Object.fromEntries(progress.map(p => [p.category_key, p]));
+        // Kecil
+        buildMini('Kecil', map['kapal_kecil'], 'miniChartKecil', 'miniKecilLabel', 'miniKecilBar');
+        // Medium
+        buildMini('Medium', map['kapal_medium'], 'miniChartMedium', 'miniMediumLabel', 'miniMediumBar');
+        // Besar
+        buildMini('Besar', map['kapal_besar'], 'miniChartBesar', 'miniBesarLabel', 'miniBesarBar');
+      }
+
+      function buildMini(name, p, canvasId, labelId, barId) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx || !p) return;
+        state.miniCharts[canvasId] = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Terpakai', 'Sisa'],
+            datasets: [{ data: [p.used_budget, Math.max(0, p.total_budget - p.used_budget)], backgroundColor: [p.color, '#e5e7eb'], borderWidth: 0, hoverOffset: 0 }],
+          },
+          options: { cutout: '70%', rotation: -90, circumference: 360, plugins: { legend: { display: false }, tooltip: { enabled: false } }, responsive: true, maintainAspectRatio: false },
+        });
+        document.getElementById(labelId).textContent = `${formatIDR(p.used_budget)} / ${formatIDR(p.total_budget)} (${p.used_percent}%)`;
+        document.getElementById(barId).style.width = `${p.used_percent}%`;
+      }
+
+      function setupShipTabs() {
+        const tabs = ['tabKecil', 'tabMedium', 'tabBesar'];
+        tabs.forEach(id => document.getElementById(id).classList.remove('bg-white', 'shadow'));
+        function activate(tabKey) {
+          state.currentCategoryTab = tabKey;
+          state.shipsPage = 1;
+          tabs.forEach(id => document.getElementById(id).classList.remove('bg-white', 'shadow'));
+          if (tabKey === 'kapal_kecil') document.getElementById('tabKecil').classList.add('bg-white', 'shadow');
+          if (tabKey === 'kapal_medium') document.getElementById('tabMedium').classList.add('bg-white', 'shadow');
+          if (tabKey === 'kapal_besar') document.getElementById('tabBesar').classList.add('bg-white', 'shadow');
+          renderShipList();
+        }
+        activate('kapal_kecil');
+        document.getElementById('tabKecil').addEventListener('click', () => activate('kapal_kecil'));
+        document.getElementById('tabMedium').addEventListener('click', () => activate('kapal_medium'));
+        document.getElementById('tabBesar').addEventListener('click', () => activate('kapal_besar'));
+        document.getElementById('prevPage').addEventListener('click', () => { if (state.shipsPage > 1) { state.shipsPage--; renderShipList(); } });
+        document.getElementById('nextPage').addEventListener('click', () => { state.shipsPage++; renderShipList(); });
+      }
+
+      async function renderShipList() {
+        const listEl = document.getElementById('shipList');
+        const infoEl = document.getElementById('shipListInfo');
+        const pageEl = document.getElementById('pageIndicator');
+        const url = `/api/ships/progress?category=${state.currentCategoryTab}&page=${state.shipsPage}&per_page=${state.shipsPerPage}`;
+        const res = await (await fetch(url)).json();
+        const { data, total, page, per_page } = res;
+        const totalPages = Math.max(1, Math.ceil(total / per_page));
+        if (page > totalPages) {
+          state.shipsPage = totalPages;
+          return renderShipList();
+        }
+        listEl.innerHTML = data.map(item => `
+          <div class="py-3 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-600 font-semibold">${item.ship_name.split(' ').pop()?.[0] || 'K'}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <div class="font-medium truncate">${item.ship_name} <span class="text-slate-400">(${item.id})</span></div>
+                <div class="text-sm text-slate-500">${formatIDR(item.budget_used)} / ${formatIDR(item.budget_allocated)}</div>
+              </div>
+              <div class="mt-2 h-2 bg-slate-200 rounded-full">
+                <div class="h-2 rounded-full ${progressColor(item.progress_percent)}" style="width:${item.progress_percent}%"></div>
+              </div>
+              <div class="mt-1 text-xs text-slate-500">${item.progress_percent}% • ${item.delivery_status}</div>
+            </div>
+          </div>
+        `).join('');
+        infoEl.textContent = `Menampilkan ${data.length} dari ${total} kapal`;
+        pageEl.textContent = `${page} / ${totalPages}`;
+      }
+
+      function progressColor(pct) {
+        if (pct >= 80) return 'bg-accent-orange';
+        if (pct >= 60) return 'bg-accent-green';
+        return 'bg-accent-blue';
+      }
+
+      async function renderHistoryTable() {
+        const table = document.getElementById('historyTable');
+        const res = await (await fetch('/api/shipping/history?page=1&per_page=25')).json();
+        const rows = res.data.map(r => [r.date, r.ship_id, r.ship_name, r.item, formatIDR(r.amount), r.status, r.notes || '-']);
+        const dt = new simpleDatatables.DataTable(table, {
+          data: { headings: ['Tanggal', 'Ship ID', 'Nama Kapal', 'Barang', 'Jumlah Terpakai (IDR)', 'Status', 'Catatan'], data: rows },
+          perPage: 10,
+          perPageSelect: [10, 25, 50],
+          labels: {
+            placeholder: 'Cari...', perPage: '{select} per halaman', noRows: 'Tidak ada data', info: 'Menampilkan {start}–{end} dari {rows} data',
+          },
+        });
+        // Expose for debugging
+        window._historyDt = dt;
+      }
+
+      function setupCardScrollButtons() {
+        document.querySelectorAll('[data-action="scrollToList"]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const key = btn.getAttribute('data-target');
+            const section = document.getElementById('shipListSection');
+            // Switch tab then scroll
+            const mapping = { kapal_kecil: 'tabKecil', kapal_medium: 'tabMedium', kapal_besar: 'tabBesar' };
+            document.getElementById(mapping[key]).click();
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        });
+      }
+
+      async function openRightDetail(categoryKey, label, amount) {
+        const overlay = document.getElementById('detailOverlay');
+        const panel = document.getElementById('rightDetail');
+        // fetch detail
+        const data = await (await fetch(`/api/budget/categories/${categoryKey}/detail`)).json();
+        document.getElementById('detailTitle').textContent = `${data.category_label}`;
+        document.getElementById('detailAmount').textContent = formatIDR(data.amount);
+        const list = document.getElementById('detailList');
+        list.innerHTML = data.sub_items.map(si => `
+          <div class="p-3 border rounded-lg">
+            <div class="flex items-center justify-between">
+              <div class="font-medium">${si.ship_name} <span class="text-slate-400">(${si.ship_id})</span></div>
+              <div class="text-sm text-slate-500">${formatIDR(si.used)} / ${formatIDR(si.allocated)}</div>
+            </div>
+            <div class="mt-2 h-2 bg-slate-200 rounded-full">
+              <div class="h-2 bg-slate-900 rounded-full" style="width:${Math.min(100, Math.round((si.used / si.allocated) * 100))}%"></div>
+            </div>
+          </div>
+        `).join('');
+        // open
+        overlay.classList.remove('hidden');
+        panel.classList.remove('translate-x-full');
+
+        document.getElementById('btnCloseDetail').onclick = closeDetail;
+        overlay.onclick = closeDetail;
+        document.getElementById('btnExport').onclick = () => alert('Export dummy - ganti dengan implementasi nyata');
+        document.getElementById('btnOpenFull').onclick = () => alert('Buka detail kategori: ' + data.category_label);
+      }
+
+      function closeDetail() {
+        const overlay = document.getElementById('detailOverlay');
+        const panel = document.getElementById('rightDetail');
+        overlay.classList.add('hidden');
+        panel.classList.add('translate-x-full');
+      }
+    </script>
+  </body>
+</html>
